@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.30
+Version: 1.40
 
 WHAT IS IT
 
@@ -53,6 +53,16 @@ later for details of copy and distribution terms.
 
 
 CHANGE HISTORY
+
+version 1.40:
+
+* Add new function format_bytes() to display '1K' for '1024', etc.
+  (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
+* Fix bugs in round() and format_picture() when dealing with negative
+  numbers.  NOTE: format_picture() now includes at least one extra
+  space in its output for positive numbers.  This may present a minor
+  incompatibility issue in some obscure cases.
+* Minor documentation updates.
 
 version 1.30:
 
