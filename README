@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.12
+Version: 1.20
 
 WHAT IS IT
 
@@ -45,7 +45,14 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
-This is version 1.12:
+This is version 1.20:
+
+* Make POSIX no longer required (users on MicroSoft systems sometimes
+  don't have it); uses US defaults if no POSIX.pm found.
+* Add new optional third argument to format_number() to add trailing
+  zeroes.
+ 
+version 1.12:
 
 * Remove 'use of undefined value' warnings when used with perl -w
 

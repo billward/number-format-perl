@@ -1,6 +1,16 @@
 Planned improvements for Number::Format
 ---------------------------------------
 
+Mon Aug 31 19:04:01 PDT 1998
+ *none*
+
+Completed improvements for Number::Format
+-----------------------------------------
+
 Fri Nov 21 14:13:30 PST 1997
   - Add Locale support to set the default values for $THOUSANDS_SEP,
-    $DECIMAL_SEP, and $CURRENCY based on the user's locale.
+    $DECIMAL_SEP, and $CURRENCY based on the user's locale. [DONE in 1.10]
+
+Mon Aug 31 19:04:01 PDT 1998
+  - Make POSIX optional [DONE in 1.20]
+  - Add option to always display trailing zeroes in format_number [DONE in 1.20]

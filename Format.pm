@@ -11,7 +11,7 @@ Number::Format - Perl extension for formatting numbers
   use Number::Format;
   
   $rounded = round($number, $precision);
-  $formatted = format_number($number, $precision);
+  $formatted = format_number($number, $precision, $trailing_zeroes);
   $formatted = format_picture($number, $picture);
   $formatted = format_price($number, $precision);
   $number = unformat_number($formatted);
@@ -89,27 +89,51 @@ you can use the tag C<:all>.
 ###---------------------------------------------------------------------
 
 use strict;
-
-use vars qw($VERSION @ISA $DECIMAL_POINT $THOUSANDS_SEP $INT_CURR_SYMBOL
-	    @EXPORT_SUBS @EXPORT_VARS @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA $DEFAULT_LOCALE $DECIMAL_POINT @EXPORT_SUBS
+	    @EXPORT_VARS @EXPORT_OK %EXPORT_TAGS $INT_CURR_SYMBOL
+	    $POSIX_LOADED $THOUSANDS_SEP);
 use Exporter;
-use POSIX qw(locale_h);
+
+BEGIN
+{
+    eval { require POSIX; POSIX->import( qw(locale_h) ) };
+    if ($@)
+    {
+	# code to provide alternate definitions for POSIX functions
+	*localeconv = sub { $DEFAULT_LOCALE }; # return default
+	*setlocale  = sub { };	#  do nothing
+	*LC_ALL = sub { };	#  do nothing
+	$POSIX_LOADED = 0;
+    }
+    else
+    {
+	$POSIX_LOADED = 1;
+    }
+}
 
 @ISA     = qw(Exporter);
 
 @EXPORT_SUBS = qw(format_number format_picture format_price round
 		  unformat_number);
-@EXPORT_VARS = qw($DECIMAL_POINT $THOUSANDS_SEP $INT_CURR_SYMBOL);
+@EXPORT_VARS = qw($DECIMAL_POINT $DEFAULT_LOCALE $INT_CURR_SYMBOL
+		  $POSIX_LOADED $THOUSANDS_SEP);
 @EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
 %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.12';
+$VERSION = '1.13';
 
 $DECIMAL_POINT   = '.';
 $THOUSANDS_SEP   = ',';
 $INT_CURR_SYMBOL = 'USD ';
+
+$DEFAULT_LOCALE = { mon_thousands_sep => $THOUSANDS_SEP,
+		    mon_decimal_point => $DECIMAL_POINT,
+		    thousands_sep     => $THOUSANDS_SEP,
+		    decimal_point     => $DECIMAL_POINT,
+		    int_curr_symbol   => $INT_CURR_SYMBOL,
+		  };
 
 ###---------------------------------------------------------------------
 
@@ -138,8 +162,8 @@ sub _get_self
 
 ##----------------------------------------------------------------------
 
-# _check_seps is used to validate that the $THOUSANDS_SEP and
-#     $DECIMAL_POINT variables have acceptable values.  For internal use
+# _check_seps is used to validate that the thousands_sep and
+#     decimal_point variables have acceptable values.  For internal use
 #     only.
 
 sub _check_seps
@@ -248,20 +272,22 @@ sub round
 
 ##----------------------------------------------------------------------
 
-=item format_number($number, $precision)
+=item format_number($number, $precision, $trailing_zeroes)
 
 Formats a number by adding C<THOUSANDS_SEP> between each set of 3
 digits to the left of the decimal point, substituting C<DECIMAL_POINT>
 for the decimal point, and rounding to the specified precision using
 C<round()>.  Note that C<$precision> is a I<maximum> precision
-specifier; trailing zeroes will not appear in the output (see
-C<format_price()> for that).  If C<$precision> is omitted, the default
-value of 2 is used.  Examples:
+specifier; trailing zeroes will only appear in the output if
+C<$trailing_zeroes> is provided with a value that is not zero, undef,
+or the empty string.  If C<$precision> is omitted, the default value
+of 2 is used.  Examples:
 
   format_number(12345.6789)      yields   '12,345.68'
   format_number(123456.789, 2)   yields   '123,456.79'
   format_number(1234567.89, 2)   yields   '1,234,567.89'
   format_number(1234567.8, 2)    yields   '1,234,567.8'
+  format_number(1234567.8, 2, 1) yields   '1,234,567.80'
   format_number(1.23456789, 6)   yields   '1.234568'
 
 Of course the output would have your values of C<THOUSANDS_SEP> and
@@ -271,12 +297,17 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 
 sub format_number
 {
-    my ($self, $number, $precision) = _get_self @_;
+    my ($self, $number, $precision, $trailing_zeroes) = _get_self @_;
     $self->_check_seps();	# first make sure the SEP variables are valid
+
     $number = $self->round($number, $precision); # round off $number
 
     # Split integer and decimal parts of the number and add commas
     my ($integer, $decimal) = split(/\./, $number, 2);
+
+    # Add trailing 0's if $trailing_zeroes is set.
+    $decimal .= '0'x( $precision - length($decimal) )
+	if $trailing_zeroes && $precision > length($decimal);
 
     # Add leading 0's so length($integer) is divisible by 3
     $integer = '0'x(3 - (length($integer) % 3)).$integer;
