@@ -5,7 +5,8 @@
 $| = 1;
 
 use Number::Format qw(:vars);
-unless ($POSIX_LOADED)
+eval "use POSIX qw(locale_h)";
+if ($@)
 {
     print "1..0\n";
     exit;
@@ -13,8 +14,6 @@ unless ($POSIX_LOADED)
 
 print "1..3\n";
 END {print "not ok 1\n" unless $loaded;}
-use Number::Format;
-use POSIX qw(locale_h);
 $loaded = 1;
 print "ok 1\n";
 
@@ -24,12 +23,15 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-setlocale(LC_ALL, "de_DE");
-my $german = new Number::Format();
-print "not " unless ($german->format_price(123456.789) eq 'DEM 123.456,79');
+if (setlocale(POSIX::LC_ALL, "de_DE"))
+{
+    my $german = new Number::Format();
+    print "not "
+	unless ($german->format_price(123456.789) eq 'DEM 123.456,79');
+}
 print "ok 2\n";
 
-setlocale(LC_ALL, "en_US");
+setlocale(POSIX::LC_ALL, "en_US");
 my $english = new Number::Format();
 print "not " unless ($english->format_price(123456.789) eq 'USD 123,456.79');
 print "ok 3\n";

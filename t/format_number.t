@@ -7,7 +7,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..7\n"; }
+BEGIN { $| = 1; print "1..9\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use Number::Format qw(:subs);
 $loaded = 1;
@@ -36,3 +36,9 @@ print "ok 6\n";
 
 print "not " unless (format_number("1.2300", 7, 1) eq '1.2300000');
 print "ok 7\n";
+
+print "not " unless (format_number(.23, 7, 1) eq '0.2300000');
+print "ok 8\n";
+
+print "not " unless (format_number(-100, 7, 1) eq '-100.0000000');
+print "ok 9\n";
