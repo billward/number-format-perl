@@ -185,7 +185,7 @@ BEGIN
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.40';
+$VERSION = '1.41';
 
 $DECIMAL_POINT	 = '.';
 $THOUSANDS_SEP	 = ',';
@@ -496,6 +496,8 @@ sub format_picture
     # Split up the picture and die if there is more than one $DECIMAL_POINT
     my($pic_int, $pic_dec, @cruft) =
 	split(/\Q$self->{decimal_point}\E/, $picture);
+    $pic_int = '' unless defined $pic_int;
+    $pic_dec = '' unless defined $pic_dec;
 
     croak("Number::Format::format_picture($number, $picture): ".
 	  "Only one decimal separator($self->{decimal_point}) ".
@@ -503,8 +505,8 @@ sub format_picture
 	if @cruft;
 
     # Obtain precision from the length of the decimal part...
-    my $precision = $pic_dec;	# start with copying it
-    $precision =~ s/[^\#]//g;	# eliminate all non-# characters
+    my $precision = $pic_dec;	    # start with copying it
+    $precision =~ s/[^\#]//g;	    # eliminate all non-# characters
     $precision = length $precision; # take the length of the result
 
     # Format the number
@@ -517,6 +519,8 @@ sub format_picture
 
     # Split up $number same as we did for $picture earlier
     my($num_int, $num_dec) = split(/\./, $number, 2);
+    $num_int = '' unless defined $num_int;
+    $num_dec = '' unless defined $num_dec;
 
     # Check if the integer part will fit in the picture
     if (length $num_int > $intsize)
@@ -533,8 +537,8 @@ sub format_picture
     my @pic_dec = split(//, $pic_dec);
 
     # Now we copy those characters into @result.
-    my @result = ($self->{decimal_point}) if $num_dec;
-
+    my @result = ($self->{decimal_point})
+	if $picture =~ /\Q$self->{decimal_point}\E/;
     # For each characture in the decimal part of the picture, replace '#'
     # signs with digits from the number.
     foreach (@pic_dec)
@@ -600,10 +604,10 @@ sub format_price
     $decimal .= '0'x($precision - length $decimal);
 
     # Combine it all back together and return it.
-    my($result) = $precision ?
-	join('', $self->{int_curr_symbol},
-		$integer, $self->{mon_decimal_point}, $decimal):
-	$integer ;
+    my $result = ($self->{int_curr_symbol} .
+		  ($precision ?
+		   join($self->{mon_decimal_point}, $integer, $decimal) :
+		   $integer));
 
     return ($sign < 0) ? $self->format_negative($result) : $result;
 }
