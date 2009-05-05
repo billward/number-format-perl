@@ -1,17 +1,8 @@
 # -*- CPerl -*-
 
-use Test::More;
+use Test::More qw(no_plan);
 use strict;
 use warnings;
-
-BEGIN {
-    # Do not test when under OpenBSD; see
-    # http://www.in-ulm.de/~mascheck/locale/ and
-    # http://undeadly.org/cgi?action=article&sid=20030206041352
-    plan skip_all => 'OpenBSD C library lacks locale support'
-        if $^O =~ /^(openbsd|dragonfly)$/;
-    plan 'no_plan';
-}
 
 BEGIN { use_ok('Number::Format') }
 BEGIN { use_ok('POSIX') }
@@ -50,7 +41,7 @@ SKIP:
     my $dec = $russian->{mon_decimal_point};
     my $num = "123${sep}456${dec}79";
 
-    like($russian->format_price(123456.789), qr/^$num RU[RB] $/, "rubles");
+    is($russian->format_price(123456.789), "$num RUB ", "rubles");
     is($russian->unformat_number("$num RUB "), 123456.79, "unformat rubles");
     is($russian->unformat_number($num), 123456.79, "unformat Russian 1");
     $num = "123${sep}456$russian->{decimal_point}79";
