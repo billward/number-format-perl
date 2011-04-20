@@ -1,4 +1,8 @@
+*.orig
+*.rej
+*~
 Makefile
+Makefile.old
+Number-Format-*.tar.gz
 blib
 pm_to_blib
-Number-Format-*.tar.gz

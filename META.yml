@@ -1,16 +1,23 @@
 --- #YAML:1.0
 name:                Number-Format
-version:             1.74
+version:             1.75
 abstract:            Perl extension for formatting numbers
 license:             perl
-author:              
-    - William R. Ward <wrw@cpan.org>
-generated_by:        ExtUtils::MakeMaker version 6.42
+author:
+    - William R Ward <wrw@cpan.org>
 distribution_type:   module
-requires:     
-    Carp:                          0
-    POSIX:                         0
-    Test::More:                    0
+requires:
+    Carp:	0
+    Exporter:	0
+    POSIX:	0
+build_requires:
+    Test::More:	0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.3.html
     version: 1.3
+resources:
+    license:     http://dev.perl.org/licenses/
+    homepage:    http://sourceforge.net/projects/number-format/
+    bugtracker:  http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Format
+    repository:  http://number-format.cvs.sourceforge.net/number-format/perl/Number%3A%3AFormat/
+    MailingList: number-format-announce@lists.sourceforge.net
