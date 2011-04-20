@@ -30,3 +30,12 @@ is(format_bytes(123456789.1,  mode => "iec"), '117.74MiB', 'bigger mebi');
 is(format_bytes(1234567890.1, mode => "iec"), '1.15GiB',   'gibi');
 is(format_bytes(1048576,      mode => "iec",
                 unit => 'K'),                 '1,024KiB',  'iec unit');
+
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is(format_bytes(undef), "0");
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::format_bytes at \Q$file\E line \d+\n});
+}

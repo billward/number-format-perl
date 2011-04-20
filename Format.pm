@@ -1,8 +1,8 @@
 package Number::Format;
 
-# Minimum version is 5.8.0.  May work on earlier versions, but not
-# supported on any version older than 5.8.
-require 5.008;
+# Minimum version is 5.10.0.  May work on earlier versions, but not
+# supported on any version older than 5.10.  Hack this line at your own risk:
+require 5.010;
 
 use strict;
 use warnings;
@@ -142,8 +142,8 @@ higher are not implemented because of integer overflows on 32-bit
 systems.
 
 The only restrictions on C<DECIMAL_POINT> and C<THOUSANDS_SEP> are that
-they must not be digits, must not be identical, and must each be one
-character.  There are no restrictions on C<INT_CURR_SYMBOL>.
+they must not be digits and must not be identical.  There are no
+restrictions on C<INT_CURR_SYMBOL>.
 
 For example, a German user might include this in their code:
 
@@ -211,7 +211,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.73';
+our $VERSION = '1.74';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -283,6 +283,17 @@ our $DEFAULT_LOCALE = { (
                          mebi_suffix       => $MEBI_SUFFIX,
                          gibi_suffix       => $GIBI_SUFFIX,
                         ) };
+
+#
+# On Windows, the POSIX localeconv() call returns illegal negative
+# numbers for some values, seemingly attempting to indicate null.  The
+# following list indicates the values for which this has been
+# observed, and for which the values should be stripped out of
+# localeconv().
+#
+our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
+                           n_cs_precedes n_sep_by_space n_sign_posn
+                           p_xs_precedes p_sep_by_space p_sign_posn );
 
 #
 # Largest integer a 32-bit Perl can handle is based on the mantissa
@@ -378,6 +389,23 @@ sub _get_multipliers
     }
 }
 
+##----------------------------------------------------------------------
+
+# _complain_undef displays a warning message on STDERR and is called
+# when a subroutine has been invoked with an undef value.  A warning
+# message is printed if the calling environment has "uninitialized"
+# warnings enabled.
+
+sub _complain_undef
+{
+    my @stack;
+    my($sub, $bitmask) = (caller(1))[3,9];
+    my $offset = $warnings::Offsets{"uninitialized"};
+    carp "Use of uninitialized value in call to $sub"
+         if vec($bitmask, $offset, 1);
+}
+
+
 ###---------------------------------------------------------------------
 
 =head1 METHODS
@@ -411,7 +439,14 @@ sub new
     # my $locale        = setlocale(LC_ALL, "");
     my $locale_values = localeconv();
 
-    my $arg;
+    # Strip out illegal negative values from the current locale
+    foreach ( @IGNORE_NEGATIVE )
+    {
+        if (defined($locale_values->{$_}) && $locale_values->{$_} eq '-1')
+        {
+            delete $locale_values->{$_};
+        }
+    }
 
     while(my($arg, $default) = each %$DEFAULT_LOCALE)
     {
@@ -472,9 +507,25 @@ variables, use C<format_number()> instead.
 sub round
 {
     my ($self, $number, $precision) = _get_self @_;
+
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
     $precision = $self->{decimal_digits} unless defined $precision;
     $precision = 2 unless defined $precision;
-    $number    = 0 unless defined $number;
+
+    croak("precision must be integer")
+        unless int($precision) == $precision;
+
+    if (ref($number) && $number->isa("Math::BigFloat"))
+    {
+        my $rounded = $number->copy();
+        $rounded->precision(-$precision);
+        return $rounded;
+    }
 
     my $sign       = $number <=> 0;
     my $multiplier = (10 ** $precision);
@@ -527,6 +578,13 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 sub format_number
 {
     my ($self, $number, $precision, $trailing_zeroes, $mon) = _get_self @_;
+
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
     $self->_check_seps();       # first make sure the SEP variables are valid
 
     my($thousands_sep, $decimal_point) =
@@ -577,8 +635,8 @@ sub format_number
         $integer = join($thousands_sep,
                         grep {$_ ne ''} split(/(...)/, $integer));
 
-        # Strip off leading zeroes and/or comma
-        $integer =~ s/^0+\Q$thousands_sep\E?//;
+        # Strip off leading zeroes and optional thousands separator
+        $integer =~ s/^0+(?:\Q$thousands_sep\E)?//;
     }
     $integer = '0' if $integer eq '';
 
@@ -606,6 +664,13 @@ but formatting will occur whether or not the number is negative.
 sub format_negative
 {
     my($self, $number, $format) = _get_self @_;
+
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
     $format = $self->{neg_format} unless defined $format;
     croak "Letter x must be present in picture in format_negative()"
         unless $format =~ /x/;
@@ -649,6 +714,15 @@ to avoid this problem, set NEG_FORMAT to "x".
 sub format_picture
 {
     my ($self, $number, $picture) = _get_self @_;
+
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
+    croak "Picture not defined" unless defined($picture);
+
     $self->_check_seps();
 
     # Handle negative numbers
@@ -770,6 +844,12 @@ sub format_price
 {
     my ($self, $number, $precision, $curr_symbol) = _get_self @_;
 
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
     # Determine what the monetary symbol should be
     $curr_symbol = $self->{int_curr_symbol}
         if (!defined($curr_symbol) || lc($curr_symbol) eq "int_curr_symbol");
@@ -786,13 +866,15 @@ sub format_price
     $precision = $self->{decimal_digits} unless defined $precision; # fallback
     $precision = 2                       unless defined $precision; # default
 
+    use Data::Dumper; warn Dumper($frac_digits, $precision, $self);
+
     # Determine sign and absolute value
     my $sign = $number <=> 0;
     $number = abs($number) if $sign < 0;
 
     # format it first
     $number = $self->format_number($number, $precision, undef, 1);
-
+warn "$number\n";
     # Now we make sure the decimal part has enough zeroes
     my ($integer, $decimal) =
         split(/\Q$self->{mon_decimal_point}\E/, $number, 2);
@@ -992,6 +1074,12 @@ sub format_bytes
 {
     my ($self, $number, @options) = _get_self @_;
 
+    unless (defined($number))
+    {
+        _complain_undef();
+        $number = 0;
+    }
+
     croak "Negative number not allowed in format_bytes"
         if $number < 0;
 
@@ -1135,6 +1223,13 @@ multiple of that value) as appropriate.  Examples:
 sub unformat_number
 {
     my ($self, $formatted, %options) = _get_self @_;
+
+    unless (defined($formatted))
+    {
+        _complain_undef();
+        $formatted = "";
+    }
+
     $self->_check_seps();
     return undef unless $formatted =~ /\d/; # require at least one digit
 

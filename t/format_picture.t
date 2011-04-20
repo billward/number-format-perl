@@ -26,3 +26,12 @@ is($x->format_picture(-120450.789012, $pic),'US$   (120,450.79)', 'neg paren');
 $pic = '#';
 is($x->format_picture(1, $pic), ' 1 ',  'one digit 1');
 is($x->format_picture(2, $pic), ' 2 ',  'one digit 2');
+
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is($x->format_picture(undef, $pic), " 0 ");
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::format_picture at \Q$file\E line \d+\n});
+}

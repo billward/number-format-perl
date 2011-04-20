@@ -45,3 +45,12 @@ like($@, qr/^\Qbase must be a positive integer/, "base .5");
 
 eval { unformat_number("4G", base => -1) };
 like($@, qr/^\Qbase must be a positive integer/, "base neg");
+
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is(unformat_number(undef), undef);
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::unformat_number at \Q$file\E line \d+\n});
+}

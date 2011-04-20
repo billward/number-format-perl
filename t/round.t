@@ -37,3 +37,12 @@ sub compare_numbers
     my($p, $q) = @_;
     return abs($p - $q) < 1e-10;
 }
+
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is(round(undef), "0");
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::round at \Q$file\E line \d+\n});
+}

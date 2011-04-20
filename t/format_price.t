@@ -169,3 +169,12 @@ for my $price ( sort keys %prices )
     my $want = $prices{$price};
     is($nf->format_price($price, 2), $want, "$price -> $want");
 }
+
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is($nf->format_price(undef), "EUR 0,00");
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::format_price at \Q$file\E line \d+\n});
+}

@@ -1,3 +1,14 @@
+Changes for version 1.74 (April 19, 2011)
+------------------------
+  - Only Perl 5.10.0 and newer supported
+  - Allow multi-character (e.g. "&nbsp;" for thousands_sep) (thanks
+    Nick Patch; RT 65489)
+  - Strip out illegal negative values returned by localeconv(),
+    observed on Windows - see @IGNORE_NEGATIVE (thanks Adam Kennedy;
+    RT 56802)
+  - Manage warnings when undef is passed to methods (RT 48038)
+  - Fix round() for Math::BigFloat objects (RT 62059)
+
 Changes for version 1.73 (September 25, 2009)
 ------------------------
   - Fix locale.t for RUR/RUB distinction (thanks Kevin Phair; RT 46660/45833)

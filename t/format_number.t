@@ -27,3 +27,29 @@ eval { format_number(97, 20) };
 like($@,
      qr/^\Qround() overflow. Try smaller precision or use Math::BigFloat/,
      "round overflow");
+
+#
+# https://rt.cpan.org/Ticket/Display.html?id=48038
+# Test with warnings enabled - expect a warning when called with undef
+#
+{
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is(format_number(undef), "0");
+    my $file = __FILE__;
+    like("@warnings",
+         qr{Use of uninitialized value in call to Number::Format::format_number at \Q$file\E line \d+\n});
+}
+
+#
+# https://rt.cpan.org/Ticket/Display.html?id=48038
+# Test again with warnings disabled to see if we do NOT get the warning
+#
+{
+    no warnings "uninitialized";
+    my @warnings;
+    local $SIG{__WARN__} = sub { @warnings = @_ };
+    is(format_number(undef), "0");
+    my $file = __FILE__;
+    is("@warnings", "");
+}
