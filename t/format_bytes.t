@@ -40,5 +40,5 @@ is(format_bytes(1048576,      mode => "iec",
     is(format_bytes(undef), "0");
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::format_bytes at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::format_bytes at \Q$file\E line \d+[.]?\n});
 }

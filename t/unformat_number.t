@@ -52,5 +52,5 @@ like($@, qr/^\Qbase must be a positive integer/, "base neg");
     is(unformat_number(undef), undef);
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::unformat_number at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::unformat_number at \Q$file\E line \d+[.]?\n});
 }

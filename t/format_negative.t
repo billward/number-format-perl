@@ -27,5 +27,5 @@ is($x->format_number(-.5),              '(0.50000)',    'neg paren zero');
     is($x->format_negative(undef), "(0)");
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::format_negative at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::format_negative at \Q$file\E line \d+[.]?\n});
 }

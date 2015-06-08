@@ -38,7 +38,7 @@ like($@,
     is(format_number(undef), "0");
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::format_number at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::format_number at \Q$file\E line \d+[.]?\n});
 }
 
 #

@@ -33,5 +33,5 @@ is($x->format_picture(2, $pic), ' 2 ',  'one digit 2');
     is($x->format_picture(undef, $pic), " 0 ");
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::format_picture at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::format_picture at \Q$file\E line \d+[.]?\n});
 }
