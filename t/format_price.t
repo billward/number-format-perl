@@ -176,5 +176,5 @@ for my $price ( sort keys %prices )
     is($nf->format_price(undef), "EUR 0,00");
     my $file = __FILE__;
     like("@warnings",
-         qr{Use of uninitialized value in call to Number::Format::format_price at \Q$file\E line \d+\n});
+         qr{Use of uninitialized value in call to Number::Format::format_price at \Q$file\E line \d+[.]?\n});
 }
