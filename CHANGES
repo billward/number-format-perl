@@ -8,6 +8,8 @@ Changes for version 1.74 (April 19, 2011)
     RT 56802)
   - Manage warnings when undef is passed to methods (RT 48038)
   - Fix round() for Math::BigFloat objects (RT 62059)
+  - Fix testing issue with missing locales (RT 97607, 97766, thanks to KHW)
+  - Fix testing issue with bad Russian data on some platforms (RT 92666)
 
 Changes for version 1.73 (September 25, 2009)
 ------------------------
