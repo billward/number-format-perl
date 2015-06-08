@@ -391,7 +391,7 @@ sub _get_multipliers
 
 ##----------------------------------------------------------------------
 
-# _complain_undef displays a warnning message on STDERR and is called
+# _complain_undef displays a warning message on STDERR and is called
 # when a subroutine has been invoked with an undef value.  A warning
 # message is printed if the calling environment has "uninitialized"
 # warnings enabled.
