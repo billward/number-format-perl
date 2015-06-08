@@ -46,6 +46,9 @@ SKIP:
                 or skip("Unable to set ru_RU locale", 1);
     my $russian = Number::Format->new();
 
+    # On some sysetms (notably Cygwin) the locale data is wrong for ru_RU.
+    # Force it to match what we would see on Linux so the test passes.
+    $russian->{n_sep_by_space} = $russian->{p_sep_by_space} = '1';
     my $sep = $russian->{mon_thousands_sep};
     my $dec = $russian->{mon_decimal_point};
     my $num = "123${sep}456${dec}79";

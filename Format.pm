@@ -391,7 +391,7 @@ sub _get_multipliers
 
 ##----------------------------------------------------------------------
 
-# _complain_undef displays a warning message on STDERR and is called
+# _complain_undef displays a warnning message on STDERR and is called
 # when a subroutine has been invoked with an undef value.  A warning
 # message is printed if the calling environment has "uninitialized"
 # warnings enabled.
@@ -866,7 +866,7 @@ sub format_price
     $precision = $self->{decimal_digits} unless defined $precision; # fallback
     $precision = 2                       unless defined $precision; # default
 
-    use Data::Dumper; warn Dumper($frac_digits, $precision, $self);
+#    use Data::Dumper; warn Dumper($frac_digits, $precision, $self);
 
     # Determine sign and absolute value
     my $sign = $number <=> 0;
@@ -874,7 +874,7 @@ sub format_price
 
     # format it first
     $number = $self->format_number($number, $precision, undef, 1);
-warn "$number\n";
+#warn "$number\n";
     # Now we make sure the decimal part has enough zeroes
     my ($integer, $decimal) =
         split(/\Q$self->{mon_decimal_point}\E/, $number, 2);
