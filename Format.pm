@@ -178,7 +178,7 @@ you can use the tag C<:all>.
 use strict;
 use Exporter;
 use Carp;
-use POSIX;
+use POSIX qw(localeconv);
 use base qw(Exporter);
 
 our @EXPORT_SUBS =
