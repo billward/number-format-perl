@@ -14,7 +14,7 @@ Number::Format - Perl extension for formatting numbers
 =head1 SYNOPSIS
 
   use Number::Format;
-  my $x = new Number::Format %args;
+  my $x = Number::Format->new(%args);
   $formatted = $x->round($number, $precision);
   $formatted = $x->format_number($number, $precision, $trailing_zeroes);
   $formatted = $x->format_negative($number, $picture);
@@ -148,9 +148,9 @@ restrictions on C<INT_CURR_SYMBOL>.
 For example, a German user might include this in their code:
 
   use Number::Format;
-  my $de = new Number::Format(-thousands_sep   => '.',
-                              -decimal_point   => ',',
-                              -int_curr_symbol => 'DEM');
+  my $de = Number::Format->new(-thousands_sep   => '.',
+                               -decimal_point   => ',',
+                               -int_curr_symbol => 'DEM');
   my $formatted = $de->format_number($number);
 
 Or, if you prefer not to use the object oriented interface, you can do
@@ -326,7 +326,7 @@ sub _get_self
     # reference error
     unless (ref $_[0] && UNIVERSAL::isa($_[0], "Number::Format"))
     {
-        $DefaultObject ||= new Number::Format();
+        $DefaultObject ||= Number::Format->new();
         unshift (@_, $DefaultObject);
     }
     @_;
@@ -423,9 +423,9 @@ the parameters described above.  Keys may be in all uppercase or all
 lowercase, and may optionally be preceded by a hyphen (-) character.
 Example:
 
-  my $de = new Number::Format(-thousands_sep   => '.',
-                              -decimal_point   => ',',
-                              -int_curr_symbol => 'DEM');
+  my $de = Number::Format->new(-thousands_sep   => '.',
+                               -decimal_point   => ',',
+                               -int_curr_symbol => 'DEM');
 
 =cut
 
