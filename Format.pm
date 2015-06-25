@@ -178,7 +178,7 @@ you can use the tag C<:all>.
 use strict;
 use Exporter;
 use Carp;
-use POSIX;
+use POSIX qw(localeconv);
 use base qw(Exporter);
 
 our @EXPORT_SUBS =
@@ -866,7 +866,7 @@ sub format_price
     $precision = $self->{decimal_digits} unless defined $precision; # fallback
     $precision = 2                       unless defined $precision; # default
 
-    use Data::Dumper; warn Dumper($frac_digits, $precision, $self);
+#    use Data::Dumper; warn Dumper($frac_digits, $precision, $self);
 
     # Determine sign and absolute value
     my $sign = $number <=> 0;
@@ -874,7 +874,7 @@ sub format_price
 
     # format it first
     $number = $self->format_number($number, $precision, undef, 1);
-warn "$number\n";
+#warn "$number\n";
     # Now we make sure the decimal part has enough zeroes
     my ($integer, $decimal) =
         split(/\Q$self->{mon_decimal_point}\E/, $number, 2);
