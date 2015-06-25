@@ -24,21 +24,20 @@ rounding large values of bytes to the nearest giga/mega/kilo
 
 ALSO AVAILABLE
 
-The following are also available as part of the number-format
-Sourceforge project:
+If you enjoy this module check out the following related projects:
+
   - Template Toolkit users: Use Template::Plugin::Number::Format
     (contributed by Darren Chamberlain) from your templates.
   - JavaScript users: we also have a JavaScript translation of the
-    Number::Format done by Cees Hek.  Find that in our CVS repository
-    here: http://number-format.cvs.sourceforge.net/number-format/javascript
+    Number::Format done by Cees Hek.  Find that on Github here:
+    http://number-format.cvs.sourceforge.net/
 
 
 HOW TO GET
 
 Download it from your favorite CPAN mirror, or from the Sourceforge
 project:
-
-    http://sourceforge.net/projects/number-format/
+    https://github.com/billward/number-format-perl/
 
 If you are interested in being a developer for this project, or for
 more information, please contact William R. Ward, SwPrAwM@cpan.org
@@ -66,35 +65,17 @@ will be installed there instead.
 
 PROBLEMS/BUG REPORTS
 
-Please submit your issues via the CPAN RT bug tracker or the
-Sourceforge bug system:
+Please submit your issues via the CPAN RT bug tracker or on github
     http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Format
-    http://sourceforge.net/tracker/?group_id=175334
+    https://github.com/billward/number-format-perl/
 
-Please check for existing bug reports on your issue in both places
+Please check for existing reports on your issue in both places
 before filing a new bug.
-
-
-MAILING LIST
-
-We have an electronic mailing list for announcements of new releases
-of this module.  If you wish to join this list, visit this URL:
-    http://lists.sourceforge.net/mailman/listinfo/number-format-announce
-
-We also have a mailing list for developers which you may join if you
-are interested in contributing to the project:
-    https://lists.sourceforge.net/lists/listinfo/number-format-developers
-
-We do not yet have any list for users of the module; if you would like
-one, let us know and we will look into it.
-
-There are also forums available on the SourceForge site:
-    http://sourceforge.net/forum/?group_id=175334
 
 
 CREDITS AND LICENSES
 
-This package is copyright 1997-2008 by William R. Ward et al., and may
+This package is copyright 1997-2015 by William R. Ward et al., and may
 be distributed under the same terms as cover Perl itself (your choice
 of Artistic or GPL).  See http://dev.perl.org/licenses/ for more
 information.
@@ -103,5 +84,4 @@ information.
 CHANGES
 
 See the file "CHANGES" for a description of the changes with each
-version of Number::Format.  You can also browse the CVS history on
-SourceForge for full details.
+version of Number::Format or browse history in git.
