@@ -34,6 +34,11 @@ is(format_bytes(1234567890.1, mode => "iec"), '1.15GiB',   'gibi');
 is(format_bytes(1048576,      mode => "iec",
                 unit => 'K'),                 '1,024KiB',  'iec unit');
 
+my $fmt = Number::Format->new(-decimal_digits => 1);
+is($fmt->format_bytes(12.345),   '12.3',    'default precision to decimal_digits');
+undef $fmt->{decimal_digits};
+is($fmt->format_bytes(12.345),   '12.35',    'hard default precision');
+
 {
     my @warnings;
     local $SIG{__WARN__} = sub { @warnings = @_ };

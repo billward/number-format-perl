@@ -858,7 +858,7 @@ sub format_price
     $curr_symbol = "" unless defined($curr_symbol);
 
     # Determine which value to use for frac digits
-    my $frac_digits = ($curr_symbol eq $self->{int_curr_symbol} ?
+    my $frac_digits = (defined $self->{int_curr_symbol} && $curr_symbol eq $self->{int_curr_symbol} ?
                        $self->{int_frac_digits} : $self->{frac_digits});
 
     # Determine precision for decimal portion

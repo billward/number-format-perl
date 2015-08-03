@@ -137,6 +137,23 @@ foreach my $sep (0..2)
     }
 }
 
+$usd = Number::Format->new(
+                              -int_curr_symbol   => 'USD',
+                              -currency_symbol   => '$',
+                              -frac_digits       => 3,
+                              -decimal_digits    => 1,
+                             );
+is($usd->format_price(123456.51, undef, 'int_curr_symbol'),   'USD 123,456.51', 'same as default');
+is($usd->format_price(123456.511, undef, 'currency_symbol'),   '$ 123,456.511', 'use currency_symbol str');
+
+undef $usd->{int_curr_symbol};
+is($usd->format_price(123456.5111),   '$ 123,456.511', 'another default');
+undef $usd->{currency_symbol};
+is($usd->format_price(123456.5111),   '123,456.511', 'hard default');
+undef $usd->{frac_digits};
+is($usd->format_price(123456.5111),   '123,456.5', 'frac_digits undef default');
+undef $usd->{decimal_digits};
+is($usd->format_price(123456.5111),   '123,456.51', 'hard decimal default');
 
 my %prices = ( 1234    => "EUR 1.234,00",
                56      => "EUR 56,00",
