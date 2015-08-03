@@ -1,3 +1,6 @@
+Changes for next version (TBD)
+  - Change t/bigfloat.t from en_US to C locale (thanks Alex Kapranoff)
+
 Changes for version 1.75 (June 25, 2015)
 ------------------------
   - Export only necessary from POSIX (RT#99970, thanks Alexandr Ciornii)
