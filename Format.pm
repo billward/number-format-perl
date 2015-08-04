@@ -726,7 +726,7 @@ sub format_picture
     $self->_check_seps();
 
     # Handle negative numbers
-    my($neg_prefix) = $self->{neg_format} =~ /^([^x]+)/;
+    my($neg_prefix) = $self->{neg_format} =~ /^([^x]*)/;
     my($pic_prefix) = $picture            =~ /^([^\#]+)/;
     my $neg_pic = $self->{neg_format};
     (my $pos_pic = $self->{neg_format}) =~ s/[^x\s]/ /g;
