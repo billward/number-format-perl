@@ -20,6 +20,7 @@ is($x->format_picture(-123456789.51, $pic), 'US$-**,***,***.**',  'neg over');
 is($x->format_picture(1023012.34, $pic),    'US$  1,023,012.34',  'million');
 is($x->format_picture(120450.789012, $pic), 'US$    120,450.79',  'pos rnd');
 is($x->format_picture(-120450.789012, $pic),'US$   -120,450.79',  'neg rnd');
+is($x->format_picture(1002.11, sprintf("%s #,###.##", $Number::Format::currency_symbols{NEW_SHEQEL})), '₪  1,002.11',  'Number with New Sheqel');
 $x->{neg_format} = '(x)';
 is($x->format_picture(120450.789012, $pic), 'US$    120,450.79 ', 'pos paren');
 is($x->format_picture(-120450.789012, $pic),'US$   (120,450.79)', 'neg paren');
