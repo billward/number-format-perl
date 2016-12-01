@@ -211,7 +211,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.75';
+our $VERSION = '1.76';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -399,10 +399,9 @@ sub _get_multipliers
 sub _complain_undef
 {
     my @stack;
-    my($sub, $bitmask) = (caller(1))[3,9];
-    my $offset = $warnings::Offsets{"uninitialized"};
+    my($sub) = (caller(1))[3];
     carp "Use of uninitialized value in call to $sub"
-         if vec($bitmask, $offset, 1);
+         if warnings::enabled("uninitialized");
 }
 
 

@@ -1,5 +1,6 @@
 Changes for next version (TBD)
   - Change t/bigfloat.t from en_US to C locale (thanks Alex Kapranoff)
+  - Fix undefined bitmask in _check_undef (thanks Nathan Neulinger)
 
 Changes for version 1.75 (June 25, 2015)
 ------------------------
