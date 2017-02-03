@@ -295,6 +295,38 @@ our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
                            n_cs_precedes n_sep_by_space n_sign_posn
                            p_xs_precedes p_sep_by_space p_sign_posn );
 
+# 
+# Some fancy currency symbols
+# 
+our %currency_symbols = (
+    US_DOLLAR => '$',
+    EURO_CURRENCY => '₠',
+    COLON => '₡',
+    CRUZEIRO => '₢',
+    FRENCH_FRANC => '₣',
+    LIRA => '₤',
+    MILL => '₥',
+    NAIRA => '₦',
+    PESETA => '₧',
+    RUPEE => '₨',
+    WON => '₩',
+    NEW_SHEQEL => '₪',
+    DONG => '₫',
+    EURO => '€',
+    KIP => '₭',
+    TUGRIK => '₮',
+    DRACHMA => '₯',
+    GERMAN_PENNY_SYMBOL => '₰',
+    PESO => '₱',
+    GUARANI => '₲',
+    AUSTRAL => '₳',
+    HRYVNIA => '₴',
+    CEDI => '₵',
+    LIVRE_TOURNOIS => '₶',
+    TENGE => '₸',
+    INDIAN_RUPEE => '₹',
+);
+
 #
 # Largest integer a 32-bit Perl can handle is based on the mantissa
 # size of a double float, which is up to 53 bits.  While we may be
