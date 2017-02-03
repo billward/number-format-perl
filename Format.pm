@@ -541,11 +541,14 @@ sub round
 
         if ($roundoption) {
             $rounded *= 10**$precision;
-            if ($roundoption < 0) {
+            if ($roundoption == -1) {
                 $rounded->bfloor();
             }
-            elsif ($roundoption > 0) {
+            elsif ($roundoption == 1) {
                 $rounded->bceil();
+            }
+            else {
+                croak "round() called with invalid roundoption"
             }
             $rounded /= 10**$precision;
         }
@@ -565,7 +568,7 @@ sub round
 
     # We need to add 1e-14 to avoid some rounding errors due to the
     # way floating point numbers work - see string-eq test in t/round.t
-    if ($roundoption <  0) {
+    if ($roundoption == -1) {
         if ($sign < 0) {
             $result = int($product + 1 - 1e-14) / -$multiplier;
         }
@@ -581,13 +584,16 @@ sub round
             $result = int($product + 0.5 + 1e-14) / $multiplier;
         }
     }
-    else {
+    elsif($roundoption == 1) {
         if ($sign < 0) {
             $result = int($product) / -$multiplier;
         }
         else {
             $result = int($product + 1 - 1e-14) / $multiplier;
         }
+    }
+    else {
+        croak "round() called with invalid roundoption"
     }
 
     return $result;
