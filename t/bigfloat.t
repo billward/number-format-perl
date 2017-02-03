@@ -14,6 +14,8 @@ SKIP:
     eval "use Math::BigFloat";
     skip "No Math::BigFloat installed" if $@;
 
+    is(round(Math::BigFloat->new(123.456), 2), '123.46', "round as sub");
+
     my $nf = Number::Format->new();
     is($nf->round(Math::BigFloat->new(123.456), 2), '123.46', "round");
     is($nf->format_number(Math::BigFloat->new(500.27), 2, 1), '500.27');

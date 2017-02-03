@@ -18,6 +18,11 @@ is(format_number('1.2300', 7, 1),  '1.2300000',      'extra zeroes');
 is(format_number(.23, 7, 1),       '0.2300000',      'leading zero');
 is(format_number(-100, 7, 1),      '-100.0000000',   'negative with zeros');
 
+is(format_number("0.000020000E+00", 7), '2e-05', 'scientific notation not processed');
+
+my $fmt = Number::Format->new(-thousands_sep => ""); # e.g. Russian locales
+is($fmt->format_number(12345678.509, 2),   '12345678.51',   'rounding, but no thousand sep');
+
 #
 # https://rt.cpan.org/Ticket/Display.html?id=40126
 # The test should fail because 20 digits is too big to correctly store

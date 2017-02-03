@@ -27,6 +27,13 @@ $pic = '#';
 is($x->format_picture(1, $pic), ' 1 ',  'one digit 1');
 is($x->format_picture(2, $pic), ' 2 ',  'one digit 2');
 
+is($x->format_picture(1, ''), '  ',  'empty picture');
+
+{
+    local $x->{neg_format} = 'x';
+    is($x->format_picture(1, ''), '',  'empty picture w/ trivial neg fmt');
+}
+
 {
     my @warnings;
     local $SIG{__WARN__} = sub { @warnings = @_ };

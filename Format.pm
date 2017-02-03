@@ -725,7 +725,7 @@ sub format_picture
     $self->_check_seps();
 
     # Handle negative numbers
-    my($neg_prefix) = $self->{neg_format} =~ /^([^x]+)/;
+    my($neg_prefix) = $self->{neg_format} =~ /^([^x]*)/;
     my($pic_prefix) = $picture            =~ /^([^\#]+)/;
     my $neg_pic = $self->{neg_format};
     (my $pos_pic = $self->{neg_format}) =~ s/[^x\s]/ /g;
@@ -857,7 +857,7 @@ sub format_price
     $curr_symbol = "" unless defined($curr_symbol);
 
     # Determine which value to use for frac digits
-    my $frac_digits = ($curr_symbol eq $self->{int_curr_symbol} ?
+    my $frac_digits = (defined $self->{int_curr_symbol} && $curr_symbol eq $self->{int_curr_symbol} ?
                        $self->{int_frac_digits} : $self->{frac_digits});
 
     # Determine precision for decimal portion

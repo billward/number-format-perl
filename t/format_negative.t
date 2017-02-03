@@ -10,6 +10,7 @@ setlocale(&LC_ALL, 'C');
 BEGIN { use_ok('Number::Format') }
 
 my $x = Number::Format->new;
+is($x->format_negative(123456.51, '[x]'),      '[123456.51]',   'negative with explicit format');
 $x->{neg_format}='-x';
 is($x->format_negative(123456.51),      '-123456.51',   'negative');
 is($x->format_number(-.509),            '-0.51',        'neg round');

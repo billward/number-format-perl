@@ -30,6 +30,10 @@ ok(compare_numbers(round(123456.78951, -2), 123500),       'precision=-2' );
 # number math will result in 1 rather than 1.01 for this test.
 is(round(1.005, 2), 1.01, 'string-eq' );
 
+my $fmt = Number::Format->new;
+undef $fmt->{decimal_digits};
+ok(compare_numbers($fmt->round(123456.789), 123456.79), 'hard default precision');
+
 # Compare numbers within an epsilon value to avoid false negative
 # results due to floating point math
 sub compare_numbers
