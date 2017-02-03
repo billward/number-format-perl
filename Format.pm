@@ -24,7 +24,7 @@ Number::Format - Perl extension for formatting numbers
   $number    = $x->unformat_number($formatted);
 
   use Number::Format qw(:subs);
-  $formatted = round($number, $precision);
+  $formatted = round($number, $precision, $roundoption);
   $formatted = format_number($number, $precision, $trailing_zeroes);
   $formatted = format_negative($number, $picture);
   $formatted = format_picture($number, $picture);
@@ -59,6 +59,7 @@ formatting engine.  Valid parameters are:
   DECIMAL_DIGITS    - number of digits to the right of dec point (def 2)
   DECIMAL_FILL      - boolean; whether to add zeroes to fill out decimal
   NEG_FORMAT        - format to display negative numbers (def ``-x'')
+  ROUND_OPTION      - decide to floor or normal rounding or ceil
   KILO_SUFFIX       - suffix to add when format_bytes formats kilobytes (trad)
   MEGA_SUFFIX       -    "    "  "    "        "         "    megabytes (trad)
   GIGA_SUFFIX       -    "    "  "    "        "         "    gigabytes (trad)
@@ -100,6 +101,7 @@ the parameters are:
   DECIMAL_DIGITS    = 2
   DECIMAL_FILL      = 0
   NEG_FORMAT        = '-x'
+  ROUND_OPTION      = 0
   KILO_SUFFIX       = 'K'
   MEGA_SUFFIX       = 'M'
   GIGA_SUFFIX       = 'G'
@@ -126,6 +128,9 @@ containing the letter 'x', where that letter will be replaced by a
 positive representation of the number being passed to that function.
 C<format_number()> and C<format_price()> utilize this feature by
 calling C<format_negative()> if the number was less than 0.
+
+C<ROUND_OPTION> is only used by C<round()>. A number less then 0 means
+floor, a number bigger then 0 ceil and a 0 stand for a normal rounding.
 
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
@@ -195,7 +200,7 @@ our @EXPORT_LC_MONETARY =
         $N_CS_PRECEDES $N_SEP_BY_SPACE $P_SIGN_POSN $N_SIGN_POSN );
 
 our @EXPORT_OTHER =
-    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT
+    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT $ROUND_OPTION
         $KILO_SUFFIX $MEGA_SUFFIX $GIGA_SUFFIX
         $KIBI_SUFFIX $MEBI_SUFFIX $GIBI_SUFFIX );
 
@@ -242,6 +247,7 @@ our $N_SIGN_POSN        = 1;    # sign rules for negative: 0-4
 our $DECIMAL_DIGITS     = 2;
 our $DECIMAL_FILL       = 0;
 our $NEG_FORMAT         = '-x';
+our $ROUND_OPTION       = 0;
 our $KILO_SUFFIX        = 'K';
 our $MEGA_SUFFIX        = 'M';
 our $GIGA_SUFFIX        = 'G';
@@ -276,6 +282,7 @@ our $DEFAULT_LOCALE = { (
                          decimal_digits    => $DECIMAL_DIGITS,
                          decimal_fill      => $DECIMAL_FILL,
                          neg_format        => $NEG_FORMAT,
+                         round_option      => $ROUND_OPTION,
                          kilo_suffix       => $KILO_SUFFIX,
                          mega_suffix       => $MEGA_SUFFIX,
                          giga_suffix       => $GIGA_SUFFIX,
@@ -482,18 +489,25 @@ sub new
 
 ##----------------------------------------------------------------------
 
-=item round($number, $precision)
+=item round($number, $precision, $roundoption)
 
 Rounds the number to the specified precision.  If C<$precision> is
 omitted, the value of the C<DECIMAL_DIGITS> parameter is used (default
 value 2).  Both input and output are numeric (the function uses math
 operators rather than string manipulation to do its job), The value of
-C<$precision> may be any integer, positive or negative. Examples:
+C<$precision> may be any integer, positive or negative. If C<$roundoption>
+is omitted, the value of the C<ROUND_OPTION> paramter is used (default
+value 0). Examples:
 
-  round(3.14159)       yields    3.14
-  round(3.14159, 4)    yields    3.1416
-  round(42.00, 4)      yields    42
-  round(1234, -2)      yields    1200
+  round(3.14159)             yields    3.14
+  round(3.14159, undef, 1)   yields    3.15
+  round(3.14159, undef, -1)  yields    3.14
+  round(3.14159, 4)          yields    3.1416
+  round(42.00, 4)            yields    42
+  round(1234, -2)            yields    1200
+  round(1234, -2, 1)         yields    1300
+  round(1298, -2)            yields    1300
+  round(1298, -2, -1)        yields    1200
 
 Since this is a mathematical rather than string oriented function,
 there will be no trailing zeroes to the right of the decimal point,
@@ -505,7 +519,7 @@ variables, use C<format_number()> instead.
 
 sub round
 {
-    my ($self, $number, $precision) = _get_self @_;
+    my ($self, $number, $precision, $roundoption) = _get_self @_;
 
     unless (defined($number))
     {
@@ -513,8 +527,10 @@ sub round
         $number = 0;
     }
 
-    $precision = $self->{decimal_digits} unless defined $precision;
-    $precision = 2 unless defined $precision;
+    $precision   = $self->{decimal_digits} unless defined $precision;
+    $precision   = 2 unless defined $precision;
+    $roundoption = $self->{round_option} unless defined $roundoption;
+    $roundoption = 0 unless defined $roundoption;
 
     croak("precision must be integer")
         unless int($precision) == $precision;
@@ -522,7 +538,20 @@ sub round
     if (ref($number) && $number->isa("Math::BigFloat"))
     {
         my $rounded = $number->copy();
-        $rounded->precision(-$precision);
+
+        if ($roundoption) {
+            $rounded *= 10**$precision;
+            if ($roundoption < 0) {
+                $rounded->bfloor();
+            }
+            elsif ($roundoption > 0) {
+                $rounded->bceil();
+            }
+            $rounded /= 10**$precision;
+        }
+
+        $rounded->round(0, -$precision);
+
         return $rounded;
     }
 
@@ -536,8 +565,31 @@ sub round
 
     # We need to add 1e-14 to avoid some rounding errors due to the
     # way floating point numbers work - see string-eq test in t/round.t
-    $result = int($product + .5 + 1e-14) / $multiplier;
-    $result = -$result if $sign < 0;
+    if ($roundoption <  0) {
+        if ($sign < 0) {
+            $result = int($product + 1 - 1e-14) / -$multiplier;
+        }
+        else {
+            $result = int($product) / $multiplier;
+        }
+    }
+    elsif ($roundoption == 0) {
+        if ($sign < 0) {
+            $result = int($product + 0.5 + 1e-14) / -$multiplier;
+        }
+        else {
+            $result = int($product + 0.5 + 1e-14) / $multiplier;
+        }
+    }
+    else {
+        if ($sign < 0) {
+            $result = int($product) / -$multiplier;
+        }
+        else {
+            $result = int($product + 1 - 1e-14) / $multiplier;
+        }
+    }
+
     return $result;
 }
 
