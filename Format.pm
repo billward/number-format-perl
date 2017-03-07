@@ -132,7 +132,9 @@ calling C<format_negative()> if the number was less than 0.
 C<ROUND_OPTION> is only used by C<round()> or C<format_number()>.
 -1 or ROUND_FLOOR means floor, -2 or ROUND_ABS_FLOOR means absolute
 floor, 1 or ROUND_CEIL means ceil, 2 or ROUND_ABS_CEIL means absolute
-ceil and a 0 or ROUND_NORMAL stand for normal rounding.
+ceil and a 0 or ROUND_NORMAL means normal rounding. Also see the
+corresponding methods C<floor()>, C<abs_floor()>, C<ceil()> and
+C<abs_ceil()> for more information.
 
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
@@ -188,6 +190,24 @@ use Exporter;
 use Carp;
 use POSIX qw(localeconv);
 use base qw(Exporter);
+
+#
+# Largest integer a 32-bit Perl can handle is based on the mantissa
+# size of a double float, which is up to 53 bits.  While we may be
+# able to support larger values on 64-bit systems, some Perl integer
+# operations on 64-bit integer systems still use the 53-bit-mantissa
+# double floats.  To be safe, we cap at 2**53; use Math::BigFloat
+# instead for larger numbers.
+#
+use constant MAX_INT => 2**53;
+
+#
+# Rounding constants
+use constant ROUND_ABS_FLOOR => -2;
+use constant ROUND_FLOOR     => -1;
+use constant ROUND_NORMAL    => 0;
+use constant ROUND_CEIL      => 1;
+use constant ROUND_ABS_CEIL  => 2;
 
 our @EXPORT_SUBS =
     qw( format_number format_negative format_picture
@@ -256,7 +276,7 @@ our $N_SIGN_POSN        = 1;    # sign rules for negative: 0-4
 our $DECIMAL_DIGITS     = 2;
 our $DECIMAL_FILL       = 0;
 our $NEG_FORMAT         = '-x';
-our $ROUND_OPTION       = 0;
+our $ROUND_OPTION       = ROUND_NORMAL;
 our $KILO_SUFFIX        = 'K';
 our $MEGA_SUFFIX        = 'M';
 our $GIGA_SUFFIX        = 'G';
@@ -310,24 +330,6 @@ our $DEFAULT_LOCALE = { (
 our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
                            n_cs_precedes n_sep_by_space n_sign_posn
                            p_xs_precedes p_sep_by_space p_sign_posn );
-
-#
-# Largest integer a 32-bit Perl can handle is based on the mantissa
-# size of a double float, which is up to 53 bits.  While we may be
-# able to support larger values on 64-bit systems, some Perl integer
-# operations on 64-bit integer systems still use the 53-bit-mantissa
-# double floats.  To be safe, we cap at 2**53; use Math::BigFloat
-# instead for larger numbers.
-#
-use constant MAX_INT => 2**53;
-
-#
-# Rounding constants
-use constant ROUND_ABS_FLOOR => -2;
-use constant ROUND_FLOOR     => -1;
-use constant ROUND_NORMAL    => 0;
-use constant ROUND_CEIL      => 1;
-use constant ROUND_ABS_CEIL  => 2;
 
 ###---------------------------------------------------------------------
 
@@ -511,20 +513,23 @@ sub new
 Rounds the number to the specified precision.  If C<$precision> is
 omitted, the value of the C<DECIMAL_DIGITS> parameter is used (default
 value 2).  Both input and output are numeric (the function uses math
-operators rather than string manipulation to do its job), The value of
-C<$precision> may be any integer, positive or negative. If C<$roundoption>
-is omitted, the value of the C<ROUND_OPTION> paramter is used (default
-value 0). Examples:
+operators rather than string manipulation to do its job), The value
+of C<$precision> may be any integer, positive or negative. If
+C<$roundoption> is omitted, the value of the C<ROUND_OPTION> paramter is
+used (default value C<ROUND_NORMAL>). Passing undef as a value for
+C<$precision> or C<$roundoption> will preserve the default behavior.
 
-  round(3.14159)                  yields    3.14
-  round(3.14159, undef, 1)        yields    3.15
-  round(3.14159, undef, -1)       yields    3.14
-  round(3.14159, 4)               yields    3.1416
-  round(42.00, 4)                 yields    42
-  round(1234, -2)                 yields    1200
-  round(1234, -2, ROUND_CEIL)     yields    1300
-  round(1298, -2)                 yields    1300
-  round(1298, -2, ROUND_FLOOR)    yields    1200
+Examples:
+
+  round(3.14159)                        yields    3.14
+  round(3.14159, undef, ROUND_CEIL)     yields    3.15
+  round(3.14159, undef, ROUND_FLOOR)    yields    3.14
+  round(3.14159, 4)                     yields    3.1416
+  round(42.00, 4)                       yields    42
+  round(1234, -2)                       yields    1200
+  round(1234, -2, ROUND_CEIL)           yields    1300
+  round(1298, -2)                       yields    1300
+  round(1298, -2, ROUND_FLOOR)          yields    1200
 
 Since this is a mathematical rather than string oriented function,
 there will be no trailing zeroes to the right of the decimal point,
@@ -595,7 +600,7 @@ sub round
     # way floating point numbers work - see string-eq test in t/round.t
     if (
         $roundoption == ROUND_FLOOR
-        or ($roundoption == ROUND_ABS_FLOOR and not $sign < 0)
+        or ($roundoption == ROUND_ABS_FLOOR and $sign >= 0)
         or ($roundoption == ROUND_ABS_CEIL and $sign < 0)
     ) {
         if ($sign < 0) {
@@ -615,7 +620,7 @@ sub round
     }
     elsif (
         $roundoption == ROUND_CEIL
-        or ($roundoption == ROUND_ABS_CEIL and not $sign < 0)
+        or ($roundoption == ROUND_ABS_CEIL and $sign >= 0)
         or ($roundoption == ROUND_ABS_FLOOR and $sign < 0)
     ) {
         if ($sign < 0) {
@@ -722,7 +727,9 @@ set, with a value that is true (not zero, undef, or the empty string).
 If C<$precision> is omitted, the value of the C<DECIMAL_DIGITS>
 parameter (default value of 2) is used. If C<$mon> is true (default
 value false) the monetary separators are used. C<$precision> and
-C<$roundoption> are direct passed to C<round()>.
+C<$roundoption> are direct passed to C<round()>. Passing undef as a
+value for C<$precision>, C<$trailing_zeroes>, C<$mon> or C<$roundoption>
+will preserve the default behavior.
 
 If the value is too large or great to work with as a regular number,
 but instead must be shown in scientific notation, returns that number
