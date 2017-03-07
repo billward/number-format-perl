@@ -129,8 +129,9 @@ positive representation of the number being passed to that function.
 C<format_number()> and C<format_price()> utilize this feature by
 calling C<format_negative()> if the number was less than 0.
 
-C<ROUND_OPTION> is only used by C<round()>. A number less then 0 means
-floor, a number bigger then 0 ceil and a 0 stand for a normal rounding.
+C<ROUND_OPTION> is only used by C<round()>. -1 means floor, -2 means
+absolute floor, 1 means ceil, 2 means absolute ceil and a 0 stand for
+normal rounding.
 
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
@@ -188,7 +189,8 @@ use base qw(Exporter);
 
 our @EXPORT_SUBS =
     qw( format_number format_negative format_picture
-        format_price format_bytes round unformat_number );
+        format_price format_bytes unformat_number
+        round floor ceil abs_floor abs_ceil );
 
 our @EXPORT_LC_NUMERIC =
     qw( $DECIMAL_POINT $THOUSANDS_SEP $GROUPING );
@@ -541,10 +543,18 @@ sub round
 
         if ($roundoption) {
             $rounded *= 10**$precision;
-            if ($roundoption == -1) {
+            if (
+                $roundoption == -1
+                or ($roundoption == -2 and not $rounded->is_neg())
+                or ($roundoption == 2 and $rounded->is_neg())
+            ) {
                 $rounded->bfloor();
             }
-            elsif ($roundoption == 1) {
+            elsif (
+                $roundoption == 1
+                or ($roundoption == 2 and not $rounded->is_neg())
+                or ($roundoption == -2 and $rounded->is_neg())
+            ) {
                 $rounded->bceil();
             }
             else {
@@ -568,7 +578,11 @@ sub round
 
     # We need to add 1e-14 to avoid some rounding errors due to the
     # way floating point numbers work - see string-eq test in t/round.t
-    if ($roundoption == -1) {
+    if (
+        $roundoption == -1
+        or ($roundoption == -2 and not $sign < 0)
+        or ($roundoption == 2 and $sign < 0)
+    ) {
         if ($sign < 0) {
             $result = int($product + 1 - 1e-14) / -$multiplier;
         }
@@ -584,7 +598,11 @@ sub round
             $result = int($product + 0.5 + 1e-14) / $multiplier;
         }
     }
-    elsif($roundoption == 1) {
+    elsif (
+        $roundoption == 1
+        or ($roundoption == 2 and not $sign < 0)
+        or ($roundoption == -2 and $sign < 0)
+    ) {
         if ($sign < 0) {
             $result = int($product) / -$multiplier;
         }
@@ -597,6 +615,82 @@ sub round
     }
 
     return $result;
+}
+
+##----------------------------------------------------------------------
+
+=item floor($number, $precision)
+
+Floors the number to the specified precision.
+
+  floor(3.14159)             yields    3
+  floor(3.14159, 2)          yields    3.14
+  floor(-42.5)               yields    -43
+
+=cut
+
+sub floor
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, -1);
+}
+
+##----------------------------------------------------------------------
+
+=item abs_floor($number, $precision)
+
+Floors the number to the specified precision.
+
+  abs_floor(3.14159)             yields    3
+  abs_floor(3.14159, 2)          yields    3.14
+  abs_floor(-42.5)               yields    -42
+
+=cut
+
+sub abs_floor
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, -2);
+}
+
+##----------------------------------------------------------------------
+
+=item ceil($number, $precision)
+
+Ceils the number to the specified precision.
+
+  ceil(3.14159)             yields    4
+  ceil(3.14159, 2)          yields    3.15
+  ceil(-42.5)               yields    -42
+
+=cut
+
+sub ceil
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, 1);
+}
+
+##----------------------------------------------------------------------
+
+=item abs_ceil($number, $precision)
+
+Ceils the number to the specified precision.
+
+  ceil(3.14159)             yields    4
+  ceil(3.14159, 2)          yields    3.15
+  ceil(-42.5)               yields    -4e
+
+=cut
+
+sub abs_ceil
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, 2);
 }
 
 ##----------------------------------------------------------------------
@@ -634,7 +728,7 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 
 sub format_number
 {
-    my ($self, $number, $precision, $trailing_zeroes, $mon) = _get_self @_;
+    my ($self, $number, $precision, $trailing_zeroes, $mon, $roundoption) = _get_self @_;
 
     unless (defined($number))
     {
@@ -654,8 +748,8 @@ sub format_number
 
     # Handle negative numbers
     my $sign = $number <=> 0;
+    $number = $self->round($number, $precision, $roundoption); # round off $number
     $number = abs($number) if $sign < 0;
-    $number = $self->round($number, $precision); # round off $number
 
     # detect scientific notation
     my $exponent = 0;

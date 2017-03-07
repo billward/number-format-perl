@@ -17,6 +17,16 @@ is(format_number(1.23456789, 6),   '1.234568',       'six digit rounding');
 is(format_number('1.2300', 7, 1),  '1.2300000',      'extra zeroes');
 is(format_number(.23, 7, 1),       '0.2300000',      'leading zero');
 is(format_number(-100, 7, 1),      '-100.0000000',   'negative with zeros');
+is(format_number(1.1, 0, undef, undef, -2),    '1',  'abs floor');
+is(format_number(1.1, 0, undef, undef, -1),    '1',  'floor');
+is(format_number(1.1, 0, undef, undef,  0),    '1',  'round');
+is(format_number(1.1, 0, undef, undef, +1),    '2',  'ceil');
+is(format_number(1.1, 0, undef, undef, +2),    '2',  'abs ceil');
+is(format_number(-1.6, 0, undef, undef, -2),   '-1', 'abs floor');
+is(format_number(-1.6, 0, undef, undef, -1),   '-2', 'floor');
+is(format_number(-1.6, 0, undef, undef,  0),   '-2', 'round');
+is(format_number(-1.6, 0, undef, undef, +1),   '-1', 'ceil');
+is(format_number(-1.6, 0, undef, undef, +2),   '-2', 'abs ceil');
 
 is(format_number("0.000020000E+00", 7), '2e-05', 'scientific notation not processed');
 
