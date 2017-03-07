@@ -129,9 +129,10 @@ positive representation of the number being passed to that function.
 C<format_number()> and C<format_price()> utilize this feature by
 calling C<format_negative()> if the number was less than 0.
 
-C<ROUND_OPTION> is only used by C<round()>. -1 means floor, -2 means
-absolute floor, 1 means ceil, 2 means absolute ceil and a 0 stand for
-normal rounding.
+C<ROUND_OPTION> is only used by C<round()> or C<format_number()>.
+-1 or ROUND_FLOOR means floor, -2 or ROUND_ABS_FLOOR means absolute
+floor, 1 or ROUND_CEIL means ceil, 2 or ROUND_ABS_CEIL means absolute
+ceil and a 0 or ROUND_NORMAL stand for normal rounding.
 
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
@@ -173,8 +174,9 @@ this instead:
 Nothing is exported by default.  To export the functions or the global
 variables defined herein, specify the function name(s) on the import
 list of the C<use Number::Format> statement.  To export all functions
-defined herein, use the special tag C<:subs>.  To export the
-variables, use the special tag C<:vars>; to export both subs and vars
+defined herein, use the special tag C<:subs>.  To export all constants,
+use the special tag C<:constants>. To export the variables, use the
+special tag C<:vars>; to export subs, vars and constants
 you can use the tag C<:all>.
 
 =cut
@@ -201,18 +203,23 @@ our @EXPORT_LC_MONETARY =
         $INT_FRAC_DIGITS $FRAC_DIGITS $P_CS_PRECEDES $P_SEP_BY_SPACE
         $N_CS_PRECEDES $N_SEP_BY_SPACE $P_SIGN_POSN $N_SIGN_POSN );
 
+our @EXPORT_CONSTANTS =
+    qw( ROUND_ABS_FLOOR ROUND_FLOOR ROUND_NORMAL
+        ROUND_CEIL ROUND_ABS_CEIL );
+
 our @EXPORT_OTHER =
     qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT $ROUND_OPTION
         $KILO_SUFFIX $MEGA_SUFFIX $GIGA_SUFFIX
         $KIBI_SUFFIX $MEBI_SUFFIX $GIBI_SUFFIX );
 
 our @EXPORT_VARS = ( @EXPORT_LC_NUMERIC, @EXPORT_LC_MONETARY, @EXPORT_OTHER );
-our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS );
+our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS, @EXPORT_CONSTANTS );
 
 our @EXPORT_OK   = ( @EXPORT_ALL );
 
 our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      vars             => \@EXPORT_VARS,
+                     constants        => \@EXPORT_CONSTANTS,
                      lc_numeric_vars  => \@EXPORT_LC_NUMERIC,
                      lc_monetary_vars => \@EXPORT_LC_MONETARY,
                      other_vars       => \@EXPORT_OTHER,
@@ -313,6 +320,14 @@ our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
 # instead for larger numbers.
 #
 use constant MAX_INT => 2**53;
+
+#
+# Rounding constants
+use constant ROUND_ABS_FLOOR => -2;
+use constant ROUND_FLOOR     => -1;
+use constant ROUND_NORMAL    => 0;
+use constant ROUND_CEIL      => 1;
+use constant ROUND_ABS_CEIL  => 2;
 
 ###---------------------------------------------------------------------
 
@@ -501,15 +516,15 @@ C<$precision> may be any integer, positive or negative. If C<$roundoption>
 is omitted, the value of the C<ROUND_OPTION> paramter is used (default
 value 0). Examples:
 
-  round(3.14159)             yields    3.14
-  round(3.14159, undef, 1)   yields    3.15
-  round(3.14159, undef, -1)  yields    3.14
-  round(3.14159, 4)          yields    3.1416
-  round(42.00, 4)            yields    42
-  round(1234, -2)            yields    1200
-  round(1234, -2, 1)         yields    1300
-  round(1298, -2)            yields    1300
-  round(1298, -2, -1)        yields    1200
+  round(3.14159)                  yields    3.14
+  round(3.14159, undef, 1)        yields    3.15
+  round(3.14159, undef, -1)       yields    3.14
+  round(3.14159, 4)               yields    3.1416
+  round(42.00, 4)                 yields    42
+  round(1234, -2)                 yields    1200
+  round(1234, -2, ROUND_CEIL)     yields    1300
+  round(1298, -2)                 yields    1300
+  round(1298, -2, ROUND_FLOOR)    yields    1200
 
 Since this is a mathematical rather than string oriented function,
 there will be no trailing zeroes to the right of the decimal point,
@@ -532,7 +547,7 @@ sub round
     $precision   = $self->{decimal_digits} unless defined $precision;
     $precision   = 2 unless defined $precision;
     $roundoption = $self->{round_option} unless defined $roundoption;
-    $roundoption = 0 unless defined $roundoption;
+    $roundoption = ROUND_NORMAL unless defined $roundoption;
 
     croak("precision must be integer")
         unless int($precision) == $precision;
@@ -544,16 +559,16 @@ sub round
         if ($roundoption) {
             $rounded *= 10**$precision;
             if (
-                $roundoption == -1
-                or ($roundoption == -2 and not $rounded->is_neg())
-                or ($roundoption == 2 and $rounded->is_neg())
+                $roundoption == ROUND_FLOOR
+                or ($roundoption == ROUND_ABS_FLOOR and not $rounded->is_neg())
+                or ($roundoption == ROUND_ABS_CEIL and $rounded->is_neg())
             ) {
                 $rounded->bfloor();
             }
             elsif (
-                $roundoption == 1
-                or ($roundoption == 2 and not $rounded->is_neg())
-                or ($roundoption == -2 and $rounded->is_neg())
+                $roundoption == ROUND_CEIL
+                or ($roundoption == ROUND_ABS_CEIL and not $rounded->is_neg())
+                or ($roundoption == ROUND_ABS_FLOOR and $rounded->is_neg())
             ) {
                 $rounded->bceil();
             }
@@ -579,9 +594,9 @@ sub round
     # We need to add 1e-14 to avoid some rounding errors due to the
     # way floating point numbers work - see string-eq test in t/round.t
     if (
-        $roundoption == -1
-        or ($roundoption == -2 and not $sign < 0)
-        or ($roundoption == 2 and $sign < 0)
+        $roundoption == ROUND_FLOOR
+        or ($roundoption == ROUND_ABS_FLOOR and not $sign < 0)
+        or ($roundoption == ROUND_ABS_CEIL and $sign < 0)
     ) {
         if ($sign < 0) {
             $result = int($product + 1 - 1e-14) / -$multiplier;
@@ -590,7 +605,7 @@ sub round
             $result = int($product) / $multiplier;
         }
     }
-    elsif ($roundoption == 0) {
+    elsif ($roundoption == ROUND_NORMAL) {
         if ($sign < 0) {
             $result = int($product + 0.5 + 1e-14) / -$multiplier;
         }
@@ -599,9 +614,9 @@ sub round
         }
     }
     elsif (
-        $roundoption == 1
-        or ($roundoption == 2 and not $sign < 0)
-        or ($roundoption == -2 and $sign < 0)
+        $roundoption == ROUND_CEIL
+        or ($roundoption == ROUND_ABS_CEIL and not $sign < 0)
+        or ($roundoption == ROUND_ABS_FLOOR and $sign < 0)
     ) {
         if ($sign < 0) {
             $result = int($product) / -$multiplier;
@@ -633,7 +648,7 @@ sub floor
 {
     my ($self, $number, $precision) = _get_self @_;
 
-    return $self->round($number, $precision, -1);
+    return $self->round($number, $precision, ROUND_FLOOR);
 }
 
 ##----------------------------------------------------------------------
@@ -652,7 +667,7 @@ sub abs_floor
 {
     my ($self, $number, $precision) = _get_self @_;
 
-    return $self->round($number, $precision, -2);
+    return $self->round($number, $precision, ROUND_ABS_FLOOR);
 }
 
 ##----------------------------------------------------------------------
@@ -671,7 +686,7 @@ sub ceil
 {
     my ($self, $number, $precision) = _get_self @_;
 
-    return $self->round($number, $precision, 1);
+    return $self->round($number, $precision, ROUND_CEIL);
 }
 
 ##----------------------------------------------------------------------
@@ -690,7 +705,7 @@ sub abs_ceil
 {
     my ($self, $number, $precision) = _get_self @_;
 
-    return $self->round($number, $precision, 2);
+    return $self->round($number, $precision, ROUND_ABS_CEIL);
 }
 
 ##----------------------------------------------------------------------
@@ -715,13 +730,14 @@ in scientific notation without further formatting.
 
 Examples:
 
-  format_number(12345.6789)             yields   '12,345.68'
-  format_number(123456.789, 2)          yields   '123,456.79'
-  format_number(1234567.89, 2)          yields   '1,234,567.89'
-  format_number(1234567.8, 2)           yields   '1,234,567.8'
-  format_number(1234567.8, 2, 1)        yields   '1,234,567.80'
-  format_number(1.23456789, 6)          yields   '1.234568'
-  format_number("0.000020000E+00", 7);' yields   '2e-05'
+  format_number(12345.6789)                            yields  '12,345.68'
+  format_number(123456.789, 2)                         yields  '123,456.79'
+  format_number(1234567.89, 2)                         yields  '1,234,567.89'
+  format_number(1234567.8, 2)                          yields  '1,234,567.8'
+  format_number(1234567.8, 2, 1)                       yields  '1,234,567.80'
+  format_number(1.23456789, 6)                         yields  '1.234568'
+  format_number("0.000020000E+00", 7);                 yields  '2e-05'
+  format_number(1.3579, 2, undef, undef, ROUND_FLOOR)  yields  '1.35'
 
 Of course the output would have your values of C<THOUSANDS_SEP> and
 C<DECIMAL_POINT> instead of ',' and '.' respectively.
