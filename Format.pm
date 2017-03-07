@@ -695,7 +695,7 @@ sub abs_ceil
 
 ##----------------------------------------------------------------------
 
-=item format_number($number, $precision, $trailing_zeroes)
+=item format_number($number, $precision, $trailing_zeroes, $mon, $roundoption)
 
 Formats a number by adding C<THOUSANDS_SEP> between each set of 3
 digits to the left of the decimal point, substituting C<DECIMAL_POINT>
@@ -705,7 +705,9 @@ specifier; trailing zeroes will only appear in the output if
 C<$trailing_zeroes> is provided, or the parameter C<DECIMAL_FILL> is
 set, with a value that is true (not zero, undef, or the empty string).
 If C<$precision> is omitted, the value of the C<DECIMAL_DIGITS>
-parameter (default value of 2) is used.
+parameter (default value of 2) is used. If C<$mon> is true (default
+value false) the monetary separators are used. C<$precision> and
+C<$roundoption> are direct passed to C<round()>.
 
 If the value is too large or great to work with as a regular number,
 but instead must be shown in scientific notation, returns that number
