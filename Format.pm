@@ -24,7 +24,7 @@ Number::Format - Perl extension for formatting numbers
   $number    = $x->unformat_number($formatted);
 
   use Number::Format qw(:subs);
-  $formatted = round($number, $precision);
+  $formatted = round($number, $precision, $roundoption);
   $formatted = format_number($number, $precision, $trailing_zeroes);
   $formatted = format_negative($number, $picture);
   $formatted = format_picture($number, $picture);
@@ -59,6 +59,7 @@ formatting engine.  Valid parameters are:
   DECIMAL_DIGITS    - number of digits to the right of dec point (def 2)
   DECIMAL_FILL      - boolean; whether to add zeroes to fill out decimal
   NEG_FORMAT        - format to display negative numbers (def ``-x'')
+  ROUND_OPTION      - decide to floor or normal rounding or ceil
   KILO_SUFFIX       - suffix to add when format_bytes formats kilobytes (trad)
   MEGA_SUFFIX       -    "    "  "    "        "         "    megabytes (trad)
   GIGA_SUFFIX       -    "    "  "    "        "         "    gigabytes (trad)
@@ -100,6 +101,7 @@ the parameters are:
   DECIMAL_DIGITS    = 2
   DECIMAL_FILL      = 0
   NEG_FORMAT        = '-x'
+  ROUND_OPTION      = 0
   KILO_SUFFIX       = 'K'
   MEGA_SUFFIX       = 'M'
   GIGA_SUFFIX       = 'G'
@@ -126,6 +128,13 @@ containing the letter 'x', where that letter will be replaced by a
 positive representation of the number being passed to that function.
 C<format_number()> and C<format_price()> utilize this feature by
 calling C<format_negative()> if the number was less than 0.
+
+C<ROUND_OPTION> is only used by C<round()> or C<format_number()>.
+-1 or ROUND_FLOOR means floor, -2 or ROUND_ABS_FLOOR means absolute
+floor, 1 or ROUND_CEIL means ceil, 2 or ROUND_ABS_CEIL means absolute
+ceil and a 0 or ROUND_NORMAL means normal rounding. Also see the
+corresponding methods C<floor()>, C<abs_floor()>, C<ceil()> and
+C<abs_ceil()> for more information.
 
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
@@ -167,8 +176,9 @@ this instead:
 Nothing is exported by default.  To export the functions or the global
 variables defined herein, specify the function name(s) on the import
 list of the C<use Number::Format> statement.  To export all functions
-defined herein, use the special tag C<:subs>.  To export the
-variables, use the special tag C<:vars>; to export both subs and vars
+defined herein, use the special tag C<:subs>.  To export all constants,
+use the special tag C<:constants>. To export the variables, use the
+special tag C<:vars>; to export subs, vars and constants
 you can use the tag C<:all>.
 
 =cut
@@ -181,9 +191,28 @@ use Carp;
 use POSIX qw(localeconv);
 use base qw(Exporter);
 
+#
+# Largest integer a 32-bit Perl can handle is based on the mantissa
+# size of a double float, which is up to 53 bits.  While we may be
+# able to support larger values on 64-bit systems, some Perl integer
+# operations on 64-bit integer systems still use the 53-bit-mantissa
+# double floats.  To be safe, we cap at 2**53; use Math::BigFloat
+# instead for larger numbers.
+#
+use constant MAX_INT => 2**53;
+
+#
+# Rounding constants
+use constant ROUND_ABS_FLOOR => -2;
+use constant ROUND_FLOOR     => -1;
+use constant ROUND_NORMAL    => 0;
+use constant ROUND_CEIL      => 1;
+use constant ROUND_ABS_CEIL  => 2;
+
 our @EXPORT_SUBS =
     qw( format_number format_negative format_picture
-        format_price format_bytes round unformat_number );
+        format_price format_bytes unformat_number
+        round floor ceil abs_floor abs_ceil );
 
 our @EXPORT_LC_NUMERIC =
     qw( $DECIMAL_POINT $THOUSANDS_SEP $GROUPING );
@@ -194,18 +223,23 @@ our @EXPORT_LC_MONETARY =
         $INT_FRAC_DIGITS $FRAC_DIGITS $P_CS_PRECEDES $P_SEP_BY_SPACE
         $N_CS_PRECEDES $N_SEP_BY_SPACE $P_SIGN_POSN $N_SIGN_POSN );
 
+our @EXPORT_CONSTANTS =
+    qw( ROUND_ABS_FLOOR ROUND_FLOOR ROUND_NORMAL
+        ROUND_CEIL ROUND_ABS_CEIL );
+
 our @EXPORT_OTHER =
-    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT
+    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT $ROUND_OPTION
         $KILO_SUFFIX $MEGA_SUFFIX $GIGA_SUFFIX
         $KIBI_SUFFIX $MEBI_SUFFIX $GIBI_SUFFIX );
 
 our @EXPORT_VARS = ( @EXPORT_LC_NUMERIC, @EXPORT_LC_MONETARY, @EXPORT_OTHER );
-our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS );
+our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS, @EXPORT_CONSTANTS );
 
 our @EXPORT_OK   = ( @EXPORT_ALL );
 
 our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      vars             => \@EXPORT_VARS,
+                     constants        => \@EXPORT_CONSTANTS,
                      lc_numeric_vars  => \@EXPORT_LC_NUMERIC,
                      lc_monetary_vars => \@EXPORT_LC_MONETARY,
                      other_vars       => \@EXPORT_OTHER,
@@ -242,6 +276,7 @@ our $N_SIGN_POSN        = 1;    # sign rules for negative: 0-4
 our $DECIMAL_DIGITS     = 2;
 our $DECIMAL_FILL       = 0;
 our $NEG_FORMAT         = '-x';
+our $ROUND_OPTION       = ROUND_NORMAL;
 our $KILO_SUFFIX        = 'K';
 our $MEGA_SUFFIX        = 'M';
 our $GIGA_SUFFIX        = 'G';
@@ -276,6 +311,7 @@ our $DEFAULT_LOCALE = { (
                          decimal_digits    => $DECIMAL_DIGITS,
                          decimal_fill      => $DECIMAL_FILL,
                          neg_format        => $NEG_FORMAT,
+                         round_option      => $ROUND_OPTION,
                          kilo_suffix       => $KILO_SUFFIX,
                          mega_suffix       => $MEGA_SUFFIX,
                          giga_suffix       => $GIGA_SUFFIX,
@@ -294,16 +330,6 @@ our $DEFAULT_LOCALE = { (
 our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
                            n_cs_precedes n_sep_by_space n_sign_posn
                            p_xs_precedes p_sep_by_space p_sign_posn );
-
-#
-# Largest integer a 32-bit Perl can handle is based on the mantissa
-# size of a double float, which is up to 53 bits.  While we may be
-# able to support larger values on 64-bit systems, some Perl integer
-# operations on 64-bit integer systems still use the 53-bit-mantissa
-# double floats.  To be safe, we cap at 2**53; use Math::BigFloat
-# instead for larger numbers.
-#
-use constant MAX_INT => 2**53;
 
 ###---------------------------------------------------------------------
 
@@ -482,18 +508,28 @@ sub new
 
 ##----------------------------------------------------------------------
 
-=item round($number, $precision)
+=item round($number, $precision, $roundoption)
 
 Rounds the number to the specified precision.  If C<$precision> is
 omitted, the value of the C<DECIMAL_DIGITS> parameter is used (default
 value 2).  Both input and output are numeric (the function uses math
-operators rather than string manipulation to do its job), The value of
-C<$precision> may be any integer, positive or negative. Examples:
+operators rather than string manipulation to do its job), The value
+of C<$precision> may be any integer, positive or negative. If
+C<$roundoption> is omitted, the value of the C<ROUND_OPTION> paramter is
+used (default value C<ROUND_NORMAL>). Passing undef as a value for
+C<$precision> or C<$roundoption> will preserve the default behavior.
 
-  round(3.14159)       yields    3.14
-  round(3.14159, 4)    yields    3.1416
-  round(42.00, 4)      yields    42
-  round(1234, -2)      yields    1200
+Examples:
+
+  round(3.14159)                        yields    3.14
+  round(3.14159, undef, ROUND_CEIL)     yields    3.15
+  round(3.14159, undef, ROUND_FLOOR)    yields    3.14
+  round(3.14159, 4)                     yields    3.1416
+  round(42.00, 4)                       yields    42
+  round(1234, -2)                       yields    1200
+  round(1234, -2, ROUND_CEIL)           yields    1300
+  round(1298, -2)                       yields    1300
+  round(1298, -2, ROUND_FLOOR)          yields    1200
 
 Since this is a mathematical rather than string oriented function,
 there will be no trailing zeroes to the right of the decimal point,
@@ -505,7 +541,7 @@ variables, use C<format_number()> instead.
 
 sub round
 {
-    my ($self, $number, $precision) = _get_self @_;
+    my ($self, $number, $precision, $roundoption) = _get_self @_;
 
     unless (defined($number))
     {
@@ -513,8 +549,10 @@ sub round
         $number = 0;
     }
 
-    $precision = $self->{decimal_digits} unless defined $precision;
-    $precision = 2 unless defined $precision;
+    $precision   = $self->{decimal_digits} unless defined $precision;
+    $precision   = 2 unless defined $precision;
+    $roundoption = $self->{round_option} unless defined $roundoption;
+    $roundoption = ROUND_NORMAL unless defined $roundoption;
 
     croak("precision must be integer")
         unless int($precision) == $precision;
@@ -522,7 +560,31 @@ sub round
     if (ref($number) && $number->isa("Math::BigFloat"))
     {
         my $rounded = $number->copy();
-        $rounded->precision(-$precision);
+
+        if ($roundoption) {
+            $rounded *= 10**$precision;
+            if (
+                $roundoption == ROUND_FLOOR
+                or ($roundoption == ROUND_ABS_FLOOR and not $rounded->is_neg())
+                or ($roundoption == ROUND_ABS_CEIL and $rounded->is_neg())
+            ) {
+                $rounded->bfloor();
+            }
+            elsif (
+                $roundoption == ROUND_CEIL
+                or ($roundoption == ROUND_ABS_CEIL and not $rounded->is_neg())
+                or ($roundoption == ROUND_ABS_FLOOR and $rounded->is_neg())
+            ) {
+                $rounded->bceil();
+            }
+            else {
+                croak "round() called with invalid roundoption"
+            }
+            $rounded /= 10**$precision;
+        }
+
+        $rounded->round(0, -$precision);
+
         return $rounded;
     }
 
@@ -536,14 +598,124 @@ sub round
 
     # We need to add 1e-14 to avoid some rounding errors due to the
     # way floating point numbers work - see string-eq test in t/round.t
-    $result = int($product + .5 + 1e-14) / $multiplier;
-    $result = -$result if $sign < 0;
+    if (
+        $roundoption == ROUND_FLOOR
+        or ($roundoption == ROUND_ABS_FLOOR and $sign >= 0)
+        or ($roundoption == ROUND_ABS_CEIL and $sign < 0)
+    ) {
+        if ($sign < 0) {
+            $result = int($product + 1 - 1e-14) / -$multiplier;
+        }
+        else {
+            $result = int($product) / $multiplier;
+        }
+    }
+    elsif ($roundoption == ROUND_NORMAL) {
+        if ($sign < 0) {
+            $result = int($product + 0.5 + 1e-14) / -$multiplier;
+        }
+        else {
+            $result = int($product + 0.5 + 1e-14) / $multiplier;
+        }
+    }
+    elsif (
+        $roundoption == ROUND_CEIL
+        or ($roundoption == ROUND_ABS_CEIL and $sign >= 0)
+        or ($roundoption == ROUND_ABS_FLOOR and $sign < 0)
+    ) {
+        if ($sign < 0) {
+            $result = int($product) / -$multiplier;
+        }
+        else {
+            $result = int($product + 1 - 1e-14) / $multiplier;
+        }
+    }
+    else {
+        croak "round() called with invalid roundoption"
+    }
+
     return $result;
 }
 
 ##----------------------------------------------------------------------
 
-=item format_number($number, $precision, $trailing_zeroes)
+=item floor($number, $precision)
+
+Floors the number to the specified precision.
+
+  floor(3.14159)             yields    3
+  floor(3.14159, 2)          yields    3.14
+  floor(-42.5)               yields    -43
+
+=cut
+
+sub floor
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, ROUND_FLOOR);
+}
+
+##----------------------------------------------------------------------
+
+=item abs_floor($number, $precision)
+
+Floors the absolute number to the specified precision.
+
+  abs_floor(3.14159)             yields    3
+  abs_floor(3.14159, 2)          yields    3.14
+  abs_floor(-42.5)               yields    -42
+
+=cut
+
+sub abs_floor
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, ROUND_ABS_FLOOR);
+}
+
+##----------------------------------------------------------------------
+
+=item ceil($number, $precision)
+
+Ceils the number to the specified precision.
+
+  ceil(3.14159)             yields    4
+  ceil(3.14159, 2)          yields    3.15
+  ceil(-42.5)               yields    -42
+
+=cut
+
+sub ceil
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, ROUND_CEIL);
+}
+
+##----------------------------------------------------------------------
+
+=item abs_ceil($number, $precision)
+
+Ceils the absolue number to the specified precision.
+
+  ceil(3.14159)             yields    4
+  ceil(3.14159, 2)          yields    3.15
+  ceil(-42.5)               yields    -4e
+
+=cut
+
+sub abs_ceil
+{
+    my ($self, $number, $precision) = _get_self @_;
+
+    return $self->round($number, $precision, ROUND_ABS_CEIL);
+}
+
+##----------------------------------------------------------------------
+
+=item format_number($number, $precision, $trailing_zeroes, $mon, $roundoption)
 
 Formats a number by adding C<THOUSANDS_SEP> between each set of 3
 digits to the left of the decimal point, substituting C<DECIMAL_POINT>
@@ -553,7 +725,11 @@ specifier; trailing zeroes will only appear in the output if
 C<$trailing_zeroes> is provided, or the parameter C<DECIMAL_FILL> is
 set, with a value that is true (not zero, undef, or the empty string).
 If C<$precision> is omitted, the value of the C<DECIMAL_DIGITS>
-parameter (default value of 2) is used.
+parameter (default value of 2) is used. If C<$mon> is true (default
+value false) the monetary separators are used. C<$precision> and
+C<$roundoption> are direct passed to C<round()>. Passing undef as a
+value for C<$precision>, C<$trailing_zeroes>, C<$mon> or C<$roundoption>
+will preserve the default behavior.
 
 If the value is too large or great to work with as a regular number,
 but instead must be shown in scientific notation, returns that number
@@ -561,13 +737,14 @@ in scientific notation without further formatting.
 
 Examples:
 
-  format_number(12345.6789)             yields   '12,345.68'
-  format_number(123456.789, 2)          yields   '123,456.79'
-  format_number(1234567.89, 2)          yields   '1,234,567.89'
-  format_number(1234567.8, 2)           yields   '1,234,567.8'
-  format_number(1234567.8, 2, 1)        yields   '1,234,567.80'
-  format_number(1.23456789, 6)          yields   '1.234568'
-  format_number("0.000020000E+00", 7);' yields   '2e-05'
+  format_number(12345.6789)                            yields  '12,345.68'
+  format_number(123456.789, 2)                         yields  '123,456.79'
+  format_number(1234567.89, 2)                         yields  '1,234,567.89'
+  format_number(1234567.8, 2)                          yields  '1,234,567.8'
+  format_number(1234567.8, 2, 1)                       yields  '1,234,567.80'
+  format_number(1.23456789, 6)                         yields  '1.234568'
+  format_number("0.000020000E+00", 7);                 yields  '2e-05'
+  format_number(1.3579, 2, undef, undef, ROUND_FLOOR)  yields  '1.35'
 
 Of course the output would have your values of C<THOUSANDS_SEP> and
 C<DECIMAL_POINT> instead of ',' and '.' respectively.
@@ -576,7 +753,7 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 
 sub format_number
 {
-    my ($self, $number, $precision, $trailing_zeroes, $mon) = _get_self @_;
+    my ($self, $number, $precision, $trailing_zeroes, $mon, $roundoption) = _get_self @_;
 
     unless (defined($number))
     {
@@ -596,8 +773,8 @@ sub format_number
 
     # Handle negative numbers
     my $sign = $number <=> 0;
+    $number = $self->round($number, $precision, $roundoption); # round off $number
     $number = abs($number) if $sign < 0;
-    $number = $self->round($number, $precision); # round off $number
 
     # detect scientific notation
     my $exponent = 0;
