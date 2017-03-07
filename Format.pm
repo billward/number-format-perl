@@ -640,7 +640,7 @@ sub floor
 
 =item abs_floor($number, $precision)
 
-Floors the number to the specified precision.
+Floors the absolute number to the specified precision.
 
   abs_floor(3.14159)             yields    3
   abs_floor(3.14159, 2)          yields    3.14
@@ -678,7 +678,7 @@ sub ceil
 
 =item abs_ceil($number, $precision)
 
-Ceils the number to the specified precision.
+Ceils the absolue number to the specified precision.
 
   ceil(3.14159)             yields    4
   ceil(3.14159, 2)          yields    3.15
