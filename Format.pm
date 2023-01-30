@@ -379,7 +379,11 @@ sub _check_seps
         croak("${prefix}thousands_sep and ".
               "${prefix}decimal_point may not be equal")
             if $self->{"${prefix}decimal_point"} eq
-                $self->{"${prefix}thousands_sep"};
+                $self->{"${prefix}thousands_sep"}
+
+                # There are legal locales where 'mon_decimal_point' and
+                # 'mon_thousands_sep' are both "" (the empty string)
+             && ($prefix eq "" || $self->{"mon_decimal_point"} ne "");
     }
 }
 
@@ -475,9 +479,11 @@ sub new
 
     while(my($arg, $default) = each %$DEFAULT_LOCALE)
     {
-        $me->{$arg} = (exists $locale_values->{$arg}
+        $me->{$arg} = ((   exists $locale_values->{$arg})
+                        && $locale_values->{$arg} ne "")
                        ? $locale_values->{$arg}
-                       : $default);
+                       : $default;
+
 
         foreach ($arg, uc $arg, "-$arg", uc "-$arg")
         {
