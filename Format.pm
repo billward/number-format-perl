@@ -321,11 +321,13 @@ our $DEFAULT_LOCALE = { (
                         ) };
 
 #
-# On Windows, the POSIX localeconv() call returns illegal negative
-# numbers for some values, seemingly attempting to indicate null.  The
-# following list indicates the values for which this has been
-# observed, and for which the values should be stripped out of
-# localeconv().
+# POSIX::localeconv() returns -1 for numeric values that are not applicable to
+# the current locale.  This module ignores them.  @IGNORE_NEGATIVE lists the
+# ones that this module otherwise handles (there are some fields that this
+# module always ignores, so don't need to be in the list).  (Prior to v5.37.7,
+# only the Windows version of POSIX::localeconv() returned -1; other versions
+# simply didn't return any values at all for not-applicable fields.  But the
+# end result is the same regardless of version.)
 #
 our @IGNORE_NEGATIVE = qw( frac_digits int_frac_digits
                            n_cs_precedes n_sep_by_space n_sign_posn
@@ -495,10 +497,10 @@ sub new
     }
 
     #
-    # Some broken locales define the decimal_point but not the
-    # thousands_sep.  If decimal_point is set to "," the default
-    # thousands_sep will be a conflict.  In that case, set
-    # thousands_sep to empty string.  Suggested by Moritz Onken.
+    # Some locales set the decimal_point to "," and the thousands_sep to "".
+    # This module generally defaults an empty thousands_sep to ",", creating a
+    # conflict in such a locale.  Instead, leave the thousands_sep as the
+    # empty string.  Suggested by Moritz Onken.
     #
     foreach my $prefix ("", "mon_")
     {
