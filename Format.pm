@@ -89,7 +89,7 @@ C<new()>, then the values are taken from package global variables of
 the same name (e.g.  C<$DECIMAL_POINT> is the default for the
 C<DECIMAL_POINT> parameter).  If you use the C<:vars> keyword on your
 C<use Number::Format> line (see non-object-oriented example below) you
-will import those variables into your namesapce and can assign values
+will import those variables into your namespace and can assign values
 as if they were your own local variables.  The default values for all
 the parameters are:
 
@@ -960,7 +960,7 @@ sub format_picture
     my @result;
     @result = ($self->{decimal_point})
         if $picture =~ /\Q$self->{decimal_point}\E/;
-    # For each characture in the decimal part of the picture, replace '#'
+    # For each character in the decimal part of the picture, replace '#'
     # signs with digits from the number.
     my $char;
     foreach $char (@pic_dec)
@@ -1205,7 +1205,7 @@ C<$MEGA_SUFFIX> or C<$MEBI_SUFFIX> appended to the end; etc.
 
 However if a value is given for C<unit> it will use that value
 instead.  The first letter (case-insensitive) of the value given
-indicates the threshhold for conversion; acceptable values are G (for
+indicates the threshold for conversion; acceptable values are G (for
 giga/gibi), M (for mega/mebi), K (for kilo/kibi), or A (for automatic,
 the default).  For example:
 
